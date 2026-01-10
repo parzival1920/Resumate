@@ -1,33 +1,39 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { BulletPointsResponse } from "../types";
 
-// Initialize the client strictly according to guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-const responseSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    bullets: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "A list of 5-7 tailored resume bullet points.",
-    },
-    error: {
-      type: Type.STRING,
-      description: "Error message if there is insufficient information. Set to null if successful.",
-      nullable: true,
-    },
-  },
-  required: ["bullets"],
-};
+// Initialize the stable client
+const genAI = new GoogleGenerativeAI(process.env.API_KEY || "");
 
 export const generateResumeBullets = async (
   jobDescription: string,
   resumeText: string
 ): Promise<BulletPointsResponse> => {
   try {
-    const model = "gemini-3-flash-preview";
-    
+    // Use the stable Flash model which is widely available and performant
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            bullets: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: "A list of 5-7 tailored resume bullet points.",
+            },
+            error: {
+              type: SchemaType.STRING,
+              description: "Error message if there is insufficient information. Set to null if successful.",
+              nullable: true,
+            },
+          },
+          required: ["bullets"],
+        },
+        temperature: 0.7,
+      },
+    });
+
     const prompt = `
       Act as a resume optimization assistant for students and early-career applicants.
       
@@ -54,34 +60,27 @@ export const generateResumeBullets = async (
       Return a JSON object with a 'bullets' array and an optional 'error' string.
     `;
 
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.7, // Balanced creativity and adherence
-      },
-    });
-
-    const jsonText = response.text;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const jsonText = response.text();
+    
     if (!jsonText) {
       throw new Error("No response received from AI.");
     }
 
-    const result = JSON.parse(jsonText) as BulletPointsResponse;
+    const parsedResult = JSON.parse(jsonText) as BulletPointsResponse;
     
     // Fallback if the model returns bullets but also an error message (prioritize error if bullets are empty)
-    if (result.error && result.bullets.length === 0) {
-      return { bullets: [], error: result.error };
+    if (parsedResult.error && parsedResult.bullets.length === 0) {
+      return { bullets: [], error: parsedResult.error };
     }
 
     // Ensure we have bullets if no error
-    if (!result.error && (!result.bullets || result.bullets.length === 0)) {
+    if (!parsedResult.error && (!parsedResult.bullets || parsedResult.bullets.length === 0)) {
         return { bullets: [], error: "Insufficient information to generate tailored bullets." };
     }
 
-    return result;
+    return parsedResult;
 
   } catch (error) {
     console.error("Error generating bullets:", error);
