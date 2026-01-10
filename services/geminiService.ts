@@ -1,9 +1,8 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { BulletPointsResponse } from "../types";
 
-const apiKey = process.env.API_KEY;
 // Initialize the client strictly according to guidelines
-const ai = new GoogleGenAI({ apiKey: apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const responseSchema: Schema = {
   type: Type.OBJECT,
