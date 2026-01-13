@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
       // Safely replace process.env.API_KEY with the actual value during build
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
       // Polyfill process.env to prevent runtime crashes if libraries access it
-      'process.env': JSON.stringify({}),
+      // We use a safe object that won't overwrite the specific key above due to Vite's replacement order
+      'process.env': {}, 
     },
   };
 });

@@ -1,14 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { BulletPointsResponse } from "../types";
 
-// Initialize the client with the API key from environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const generateResumeBullets = async (
   jobDescription: string,
   resumeText: string
 ): Promise<BulletPointsResponse> => {
   try {
+    // Initialize the client inside the function to prevent app-load crashes
+    // if the API key is missing or invalid at startup.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const modelId = "gemini-3-flash-preview";
 
     const prompt = `
