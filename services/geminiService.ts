@@ -9,7 +9,7 @@ export const generateResumeBullets = async (
   resumeText: string
 ): Promise<BulletPointsResponse> => {
   try {
-    const modelId = "gemini-2.5-flash";
+    const modelId = "gemini-3-flash-preview";
 
     const prompt = `
       You are a professional resume writer optimizing resumes for recruiters and ATS systems.
